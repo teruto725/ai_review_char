@@ -39,7 +39,7 @@ def display_color(img,output_file_path="tmp.jpg"):
 
 def display_con(img,con,output_file_path="tmp.jpg"):
     im_con = img.copy()
-    cv2.drawContours(im_con, con, -1, (0,255,0), 3)
+    im_con = cv2.drawContours(im_con, con, -1, (0,255,0), 1)
     display_color(im_con)
 
 #threshold以上の画素値を白にする
@@ -62,6 +62,7 @@ def findContours(img):
     #輪郭抽出
     contours, hierarchy = cv2.findContours(img_th2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     return (contours, hierarchy)
+
 
 
 #カラー画像を受け取って紙を切り取って返す 紙の向きに注意
@@ -106,3 +107,20 @@ def angle(pt1, pt2, pt0) -> float:
     dy2 = float(pt2[0,1] - pt0[0,1])
     v = math.sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2) )
     return (dx1*dx2 + dy1*dy2)/ v
+
+
+#重心を求める
+def get_centroid(cnt):
+    cnt = np.array(cnt)
+    m = cv2.moments(cnt)
+    cx = int(m['m10']/m['m00'])
+    cy = int(m['m01']/m['m00'])
+    return (cx,cy)
+
+#point間の距離を出す
+def distance(point1,point2):
+    return abs(point1[0]-point2[0])+abs(point1[1]-point2[1])
+
+#2点の中間距離を算出する
+def mid_point(point1,point2):
+    return (int((point1[0]+point2[0])/2),int((point1[1]+point2[1]))
