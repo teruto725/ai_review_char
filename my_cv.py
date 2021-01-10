@@ -39,8 +39,13 @@ def display_color(img,output_file_path="tmp.jpg"):
 
 def display_con(img,con,output_file_path="tmp.jpg"):
     im_con = img.copy()
-    im_con = cv2.drawContours(im_con, con, -1, (0,255,0), 1)
+    im_con = cv2.drawContours(im_con, con, -1, (0,255,0), 30)
     display_color(im_con)
+
+def display_point(img,point,output_file_path="tmp.jpg"):
+    im_point = img.copy() // 2 + 128
+    im_point = cv2.circle(im_point,tuple(point),3,(100,0,100),thickness=-1)
+    display_color(im_point)
 
 #threshold以上の画素値を白にする
 def threshold(img,threshold):
@@ -52,27 +57,28 @@ def gray(img):
     img_gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     return img_gray    
 
-#境界値を取り出す
-def findContours(img):
-    img_gray = gray(img)#グレイスケール
-    #２値化
-    ret,img_th1  = cv2.threshold(img_gray,220,255,cv2.THRESH_TOZERO_INV)
-    img_not = cv2.bitwise_not(img_th1)
-    ret,img_th2  = cv2.threshold(img_not,0,255, cv2.THRESH_BINARY | cv2.THRESH_OTSU )
-    #輪郭抽出
-    contours, hierarchy = cv2.findContours(img_th2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    return (contours, hierarchy)
 
 
 
 #カラー画像を受け取って紙を切り取って返す 紙の向きに注意
 def cutting_paper(img):
     x = 2000 #切り取り後のx座標
-    y = int(x*1.415)
+    y = int(x*1.415) #切り取り後のy座標
+    img_copy = np.copy(img)
+    img_gray = gray(img_copy)#グレイスケール
+    #２値化
+    img_th = cv2.adaptiveThreshold(img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, \
+                                 cv2.THRESH_BINARY, 39, 2)#影を考慮した二値化
+    display_gray(img_th)
+    img_th = cv2.bitwise_not(img_th)
+    #ノイズ除去
+    img_noise = cv2.fastNlMeansDenoising(img_th,h=30)
+    display_gray(img_noise)
 
-    # 境界抽出
-    contours, _ = findContours(img)
+    #輪郭抽出
+    contours, hierarchy = cv2.findContours(img_noise, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+    print(np.shape(contours))
     #２番目にでかい四角が紙の輪郭なのでpaper_tapを取り出す
     pic_tap = None #画像の輪郭
     paper_tap = None #紙の輪郭
@@ -88,10 +94,12 @@ def cutting_paper(img):
             paper_tap = (con,size)
         elif paper_tap[1] <= size:
             paper_tap = (con,size)
-        
+    print(np.shape(paper_tap[0]))
     #直線近似して描画
+    display_con(img,paper_tap[0])
     epsilon = 0.1*cv2.arcLength(paper_tap[0],True)
     paper_corners= cv2.approxPolyDP(paper_tap[0],epsilon,True)#紙の頂点座標
+    paper_corners = arrange_approx_points(paper_corners)# ソートする
     fix_con = np.array([[[0,0]],[[x,0]],[[x,y]],[[0,y]]], dtype="int32")#整形後のサイズ
 
     M = cv2.getPerspectiveTransform(np.float32(paper_corners),np.float32(fix_con))#変換行列の生成
@@ -123,4 +131,25 @@ def distance(point1,point2):
 
 #2点の中間距離を算出する
 def mid_point(point1,point2):
-    return (int((point1[0]+point2[0])/2),int((point1[1]+point2[1]))
+    return (int((point1[0]+point2[0])/2),int((point1[1]+point2[1])/2))
+
+#2値化画像を受け取ってフィルタ処理した2値画像を返す　線内のノイズを削除する
+def mor_clear_filter(img_thresh):
+    kernel = np.ones((3,3),np.uint8)
+    closing = cv2.morphologyEx(img_thresh, cv2.MORPH_CLOSE, kernel)
+    return closing
+
+#approxを時計回りに修正する
+def arrange_approx_points(points):
+    stack = list()
+    m_s_idx = np.argsort([ p[0][0] + p[0][1] for p in points])#足し算でソートしたindex
+    stack.append(points[m_s_idx[0]])
+    if points[m_s_idx[1]][0][0] > points[m_s_idx[2]][0][0]:
+        stack.append(points[m_s_idx[1]])
+        stack.append(points[m_s_idx[3]])
+        stack.append(points[m_s_idx[2]])
+    else:
+        stack.append(points[m_s_idx[2]])
+        stack.append(points[m_s_idx[3]])
+        stack.append(points[m_s_idx[1]])
+    return  np.stack(stack)
