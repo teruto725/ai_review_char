@@ -18,7 +18,6 @@ def deshade(img):
         result_norm_planes.append(norm_img)
 
     result = cv2.merge(result_planes)
-    result_norm = cv2.merge(result_norm_planes)
     display(result)
     return result
 
@@ -49,9 +48,14 @@ def display_point(img,point,output_file_path="./tmp/tmp.png"):
     im_point = cv2.circle(im_point,tuple(point),3,(100,0,100),thickness=-1)
     display_color(im_point,output_file_path)
 
+# approxの描画
+def display_approx(img,approx,output_file_path="./tmp/tmp.png"):
+    im_point = img.copy()
+    cv2.polylines(img, [approx.reshape(-1,2)], True, (0,0,255), thickness=1, lineType=cv2.LINE_8)
+    for i,app in enumerate(approx):
+        cv2.circle(img, (app[0][0],app[0][1]), 3, (0, 0+35*i, 0), thickness=-1)
+    display_color(img,output_file_path)
 
-def display_approx(img,point):
-    pass
 
 #threshold以上の画素値を白にする
 def threshold(img,threshold):

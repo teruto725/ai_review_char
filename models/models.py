@@ -201,7 +201,7 @@ class Char():
         plt.axis('off')
         plt.show()
         
-
+"""
     #　ポイントを出力する   
     def get_feature_points(self):
         thre_img = np.copy(self.img_thresh)
@@ -225,7 +225,7 @@ class Char():
                 for app in approx:
                     cv2.circle(resimg, (app[0][0],app[0][1]), 2, (0, 255, 0), thickness=-1)
             #my_cv.display_color(resimg)
-
+"""
     
 
 
@@ -281,7 +281,7 @@ class ScoreItem():
         self.score_point = score_point
     
     def __str__(self):
-        return message
+        return self.message
 
     def get_label(self): # 0:褒めている,1:できれば直したい(斜め向いてるとか),2:絶対に治そう(はらってないとか)
         return self.label
@@ -460,10 +460,12 @@ class Sho (Char):
         else:#右上さえ切り取れなかった
             self.score.add_score(ScoreItem(2,"おてほんどおり１かくめをかこう",30,[contour]))
     
+
+
+    
     def _kaku2_check(self,contour):
         #近似輪郭を出力する
         approx = contour.get_approx(5,10000,30,0.01)
-        #my_cv.display_con(contour.)
         if approx is None:
             self.score.add_score(ScoreItem(1,"２かくめをもっとつよくしっかりかこう",50,[contour]))
         #横幅が狭かったらハネれてない証拠
@@ -471,6 +473,7 @@ class Sho (Char):
             self.score.add_score(ScoreItem(2,"２かくめのさいごはしっかりはねよう",30,[contour]))
         else:
             approx_contour = Contour(approx,self.img_sq,None)
+            my_cv.display_approx(approx_contour.img_char,approx_contour.cnt)#debug
             #左端の点から隣接しているポイントを抜き出す =>Y軸の高さを見る
             hidari_idx=approx_contour.min_x_index
             hidari_point = approx_contour.min_x_point
@@ -484,34 +487,38 @@ class Sho (Char):
             #条件２　左の点の次の点は左の点よりもyが大きい
             #ある程度遠い位置に隣接点が存在
             
-            if d1 >20 and d2 >20:
+            if d1 >10 and d2 >10:
                 #距離が遠すぎる
-                #print("a")
+                print("a")
                 self._kaku2_hane_hantei(hidari_point,p1,p2,d1,d2,contour)
             #両方近い(ハネが極端に短い)
             elif d1 <= 20 and d2 <= 20:
                 self.score.add_score(ScoreItem(2,"２かくめはしっかりはねよう",30,[contour]))
             #左の点にすごく近い点がある場合
             #点Aと点Bを１つの点とみなして同様の処理を行う。
+            
+
+            #TODO 現在
+            #p2が近いのでp2の次のやつがp2になる
+            elif  d2 <= 10:
+                p2new = approx_contour.get_point(hidari_idx-2)
+                d2new = my_cv.distance(p2,p2new)
+                if d2new >20:
+                    print("b")
+                    self._kaku2_hane_hantei(my_cv.mid_point(p2,hidari_point),p1,p2new,d1,d2new,contour)
+                else:
+                    self.score.add_score(ScoreItem(1,"２かくめのかたちをかくにんしよう",30,[contour]))
+            
             #p1が近いのでp1の次のやつがp1になる
-            elif d1 <= 20:
+            elif d1 <= 10:
                 p1new = approx_contour.get_point(hidari_idx+2)
                 d1new = my_cv.distance(p1,p1new)
                 if d1new >20:#近くに次の点がない
-                    #print("b")
+                    print("c")
                     self._kaku2_hane_hantei(my_cv.mid_point(p1,hidari_point),p1new,p2,d1new,d2,contour)
                 else:#近くに次の点があるのは違和感
                     self.score.add_score(ScoreItem(1,"２かくめのかたちをかくにんしよう",30,[contour]))
                 
-            #p2が近いのでp2の次のやつがp2になる
-            elif d2 <= 20:
-                p2new = approx_contour.get_point(hidari_idx-2)
-                d2new = my_cv.distance(p2,p2new)
-                if d2new >20:
-                    #print("c")
-                    self._kaku2_hane_hantei(my_cv.mid_point(p2,hidari_point),p1,p2new,d1,d2new,contour)
-                else:
-                    self.score.add_score(ScoreItem(1,"２かくめのかたちをかくにんしよう",30,[contour]))
             else:#ここにはたどり着かんはず
                 print("kaku2 error")
             
@@ -535,8 +542,12 @@ class Sho (Char):
                 self.score.add_score(ScoreItem(1,"２かくめのせんはまっすぐたてにかこう",80,[contour]))
         #ちょうどいい長さ
         else:
-            if hidari_point[1]+10 < p2[1] and p2[1] < p1[1]:#隣接点が基準点よりも下に存在しているか
+            my_cv.display_point(contour.img_char,hidari_point)#debug
+            my_cv.display_point(contour.img_char,p2)#debug
+            my_cv.display_point(contour.img_char,p1)#debug
+            if hidari_point[1]-10 < p2[1] and p2[1] < p1[1]:#隣接点が基準点よりも下に存在しているか
                 #ハネの向きはok!
+
                 self.score.add_score(ScoreItem(1,"２かくめがしっかりはねれているね",80,[contour]))
                 #羽の先がはらえているかチェックする
             else :
@@ -578,7 +589,7 @@ class Mizu(Char):
 #左の払い:0,右の払い:1,下の払い:2,止め3,左へのハネ4,右へのハネ5
 class Recognizer():
     def __init__(self):
-        self.picks
+        self.picks = None
     def stack(self):
         pass
     def predict(self):
