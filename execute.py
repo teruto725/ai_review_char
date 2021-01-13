@@ -45,6 +45,6 @@ def execute_debug(img_ori):
 #デバックで実行する用
 if __name__=="__main__":
     img_paper = cv2.imread('./sample_images/work8.png')#debug用
-    score1s, score2s = execute_debug(img_paper)
+    score1s, score2s = execute_debug(fa)
     for s in score1s:
         s.print_debug()

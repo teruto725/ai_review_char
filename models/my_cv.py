@@ -50,11 +50,11 @@ def display_point(img,point,output_file_path="./tmp/tmp.png"):
 
 # approxの描画
 def display_approx(img,approx,output_file_path="./tmp/tmp.png"):
-    im_point = img.copy()
-    cv2.polylines(img, [approx.reshape(-1,2)], True, (0,0,255), thickness=1, lineType=cv2.LINE_8)
+    img_copy = img.copy()
+    cv2.polylines(img_copy, [approx.reshape(-1,2)], True, (0,0,255), thickness=1, lineType=cv2.LINE_8)
     for i,app in enumerate(approx):
-        cv2.circle(img, (app[0][0],app[0][1]), 3, (0, 0+35*i, 0), thickness=-1)
-    display_color(img,output_file_path)
+        cv2.circle(img_copy, (app[0][0],app[0][1]), 3, (0, 0+35*i, 0), thickness=-1)
+    display_color(img_copy,output_file_path)
 
 
 #threshold以上の画素値を白にする
@@ -149,17 +149,15 @@ def mor_clear_filter(img_thresh):
     closing = cv2.morphologyEx(img_thresh, cv2.MORPH_CLOSE, kernel)
     return closing
 
-#approxを時計回りに修正する
+#approxを時計回りに修正する #TODO ここを書き換える
+
 def arrange_approx_points(points):
     stack = list()
-    m_s_idx = np.argsort([ p[0][0] + p[0][1] for p in points])#足し算でソートしたindex
-    stack.append(points[m_s_idx[0]])
-    if points[m_s_idx[1]][0][0] > points[m_s_idx[2]][0][0]:
-        stack.append(points[m_s_idx[1]])
-        stack.append(points[m_s_idx[3]])
-        stack.append(points[m_s_idx[2]])
-    else:
-        stack.append(points[m_s_idx[2]])
-        stack.append(points[m_s_idx[3]])
-        stack.append(points[m_s_idx[1]])
+    s_idx = np.argsort([ p[0][0] + p[0][1] for p in points])#左上から右下
+    s2_idx = np.argsort([ p[0][0] - p[0][1] for p in points])#左下から右上
+    stack.append(points[s_idx[0]])
+    stack.append(points[s2_idx[3]])
+    stack.append(points[s_idx[3]])
+    stack.append(points[s2_idx[0]])
+    print(np.stack(stack))
     return  np.stack(stack)

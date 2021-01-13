@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import cv2
 import math
 from models import my_cv
-
+from models.database import DB #databaseからインポートするs
 
 class Factory():
     def create_char(self,char_name,char):#charの名前とcharインスタンスを渡す
@@ -27,8 +27,9 @@ class Paper():
         self._labeling()#ラベリングして上に振り分ける
         self.char1s = self._sort_chars(self.char1s)#chars配列をソートする
         self.char2s = self._sort_chars(self.char2s)#chars配列をソートする
-        map(lambda char1:char1.set_img_exp(self.char1_exp),self.char1s)#例題画像をセットする
-        map(lambda char2:char2.set_img_exp(self.char2_exp),self.char2s)#例題画像をセットする
+        _ = list(map(lambda char1:char1.set_img_exp(self.char1_exp.img_char),self.char1s))#例題画像をセットする
+        _ = list(map(lambda char2:char2.set_img_exp(self.char2_exp.img_char),self.char2s))#例題画像をセットする
+        
     #label付けを行う
     def _labeling(self):
         fty = Factory()
@@ -36,18 +37,22 @@ class Paper():
             #char.display()
             #print(char.get_lu_point())
             if 1200<char.get_lu_point()[0]<1700:
+                #print("char1_exp")
                 self.char1_exp = char
             elif 900<char.get_lu_point()[0]<1100:
+                #print("char2_exp")
                 self.char2_exp = char
             elif 400<char.get_lu_point()[0]<600:
                 if char.get_lu_point()[1]< 650:
                     pass #なぞりの部分は評価しない
                 else:
+                    #print("char1")
                     self.char1s.append(fty.create_char(self.char1_name,char))
             elif 100<char.get_lu_point()[0]<200:
                 if char.get_lu_point()[1]<650:
                     pass #なぞりの部分は評価しない
                 else:
+                    #print("char2")
                     self.char2s.append(fty.create_char(self.char2_name,char))
             else:
                 print("labeling_error")
@@ -93,6 +98,7 @@ class Paper():
             for i, cnt in enumerate(contours):
                 arclen = cv2.arcLength(cnt, True)# 輪郭の周囲を取得
                 approx = cv2.approxPolyDP(cnt, arclen*0.05, True)# 輪郭の近似
+                #my_cv.display_approx(img,approx)
                 area = abs(cv2.contourArea(approx))# 面積
                 #長方形の輪郭は、近似後に4つの角をもつ、
                 #比較的広い領域
@@ -112,33 +118,41 @@ class Paper():
                             if ch.is_same(char):
                                 break
                         else:
-                            #char.display()
+                            char.display()
                             #print(area)
                             chars.append(char)
             print(len(chars))
             if sq_num+1>=len(chars)>=sq_num-1:
                 return chars
-    
+
+
+
     #スコア一覧を返す(ここでスコアを作成する)
-    def get_scores(self):
-        score1s = list(map(lambda char:char.scoreing(),self.char1s))#Score配列
-        score2s = list(map(lambda char:char.scoreing(),self.char2s))#Score配列
+    def get_scores(self,is_stock_rec):
+        score1s = list(map(lambda char:char.scoreing(is_stock_rec),self.char1s))#Score配列
+        score2s = list(map(lambda char:char.scoreing(is_stock_rec),self.char2s))#Score配列
         return score1s, score2s
 
 class Char():
     THRESH_NUM = 200 #この値より大きい画素を白にする
     def __init__(self, points_ori,img_paper):# np.shape(points) = (4,1,2)
+        #self.points_ori = points_ori
         self.points_ori = my_cv.arrange_approx_points(points_ori) #is_sameメソッドで使用する
         self.img_paper = img_paper
-        self.img_sq = self._fit_image(img_paper,points_ori)# 255*255の正方形に変換した画像
+        self.img_char = self._fit_image(img_paper,points_ori)# 255*255の正方形に変換した画像
         self.img_thresh = self._get_img_thresh()
         self.basic_contours = self._get_basic_contours()#基本的な領域
         self.img_exp = None #見本カラー画像
         self.kanji = None #漢字
 
-        #my_cv.display_color(self.img_sq)
+        #my_cv.display_color(self.img_char)
         #self.img_fltr = self._filter_image()#フィルターがかけられた2値の画像
         #my_cv.display_gray(self.img_thresh) #debug
+    #見本をセットする
+    def set_img_exp(self,img_exp):
+        #print("a")
+        #my_cv.display_color(img_exp)
+        self.img_exp = img_exp
 
     #四角に整形して結果を保持する
     def _fit_image(self,img,points_ori,x=255,y=255):
@@ -150,15 +164,13 @@ class Char():
 
     #２値化画像 #hsvからの大津の２値化
     def _get_img_thresh(self):
-        result = np.copy(self.img_sq)
+        result = np.copy(self.img_char)
         hsv = cv2.cvtColor(result, cv2.COLOR_RGB2HSV)
         _, img_thresh = cv2.threshold(hsv[:,:,2], 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         img_thresh = cv2.bitwise_not(img_thresh)
         return img_thresh
     
-    #見本をセットする
-    def set_img_exp(self,img_exp):
-        self.img_exp = img_exp
+
 
 
     # 単純な二値化imgからcontours を生成する
@@ -178,7 +190,7 @@ class Char():
 
         cnts_sorted = cnts[sorted_idx]
         #hie_sorted = hie[sorted_idx]
-        return [Contour(cnts_sorted[i],self.img_sq,hie) for i in range(len(cnts_sorted))]
+        return [Contour(cnts_sorted[i],self.img_char,hie) for i in range(len(cnts_sorted))]
 
     
     
@@ -196,7 +208,7 @@ class Char():
     
     #表示する
     def display(self):
-        cv2.imwrite("temp.png", self.img_sq)
+        cv2.imwrite("temp.png", self.img_char)
         plt.imshow(plt.imread("temp.png"))
         plt.axis('off')
         plt.show()
@@ -208,7 +220,7 @@ class Char():
         contours, _ = cv2.findContours(thre_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
         rate_parms = [800]
         for n, rate in enumerate(rate_parms):
-            resimg = self.img_sq.copy() // 2 + 128
+            resimg = self.img_char.copy() // 2 + 128
             for i, cnt in enumerate(contours):
                 # 輪郭の周囲に比例する精度で輪郭を近似する
                 size = cv2.contourArea(cnt)
@@ -231,15 +243,15 @@ class Char():
 
 #文字１つに対するスコアクラス。
 class Score():
-    def __init__(self,img_sq, img_exp,kanji):
-        self.img_sq = img_sq
+    def __init__(self,img_char, img_exp,kanji):
+        self.img_char = img_char
         self.img_exp = img_exp
         self.kanji = kanji
         self.score_items = list()
     
     def print_debug(self):
         print("====="+self.kanji+"======")
-        #my_cv.display_color(self.img_sq)
+        #my_cv.display_color(self.img_char)
         for item in self.score_items:
             print(item.get_message())
 
@@ -253,13 +265,13 @@ class Score():
 
     #文字の画像のndarrayを返す(255*255)
     def get_img(self):
-        return self.img_sq
+        return self.img_char
     
     #文字のお手本画像の2値ndarrayを返す(255*255)
     def get_img_exp(self):
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        _, img_thre = cv2.threshold(hsv[:,:,2], 130, 255, cv2.THRESH_BINARY)#2値化
-        return self.img_thre
+        hsv = cv2.cvtColor(self.img_exp, cv2.COLOR_BGR2HSV)
+        _, img_thre = cv2.threshold(hsv[:,:,2], 100, 255, cv2.THRESH_BINARY)#2値化
+        return img_thre
     
     #score_itemクラスlistを返す
     def get_score_items(self):
@@ -306,6 +318,7 @@ class Contour():
         self.img_char = img_char # 文字の画像
         self.hie = hie #階層情報(今はそのまま渡しているので使えない)
         self.img_thresh = self._create_thresh()
+        self.img_masked = self._create_masked()
         self._define_features()
     #２値画像を生成する
     def _create_thresh(self):
@@ -379,7 +392,7 @@ class Contour():
 
     #indexからpointを返す
     def get_point(self,i):
-
+        
         return self.cnt[(i%len(self.cnt))][0]
 
     #近似線を出力するap_num:ほしい特徴点の数 loopnum:何周するか、init_num:loopの初期値, alphaループ枚の減算値
@@ -399,25 +412,63 @@ class Contour():
             #左
             if ap_num+2 >= len(approx) >= ap_num:  
                 return approx
-#近似領域のクラス
+    
+    def _create_masked(self):
+        img = np.copy(self.img_char)
+        img_thre_color = np.stack([self.img_thresh,self.img_thresh,self.img_thresh],axis = 2)
+        dst = cv2.bitwise_and(img, img_thre_color)
+        return dst
+
+
+    #左下の矩形領域を取り出す
+    def get_left_bottom_rec(self):
+        left_bottom_point = [self.min_x_point[0],self.max_y_point[1]]#左下のポイント
+        width = 20
+        left_x = left_bottom_point[0]-4
+        right_x = left_x+width
+        bottom_y = left_bottom_point[1]+4
+        top_y = bottom_y-width
+        img_slice = self.img_masked[top_y:bottom_y,left_x:right_x,:]#トリミング
+        return img_slice
+    
+    #右下の矩形領域を取り出す
+    def get_right_bottom_rec(self):
+        right_bottom_point = [self.max_x_point[0],self.max_y_point[1]]#右下のポイント
+        width = 20
+        right_x = right_bottom_point[0]+2
+        left_x = right_x-width
+        bottom_y = right_bottom_point[1]+2
+        top_y = bottom_y-width
+        img_slice = self.img_masked[top_y:bottom_y,left_x:right_x,:]#トリミング
+        return img_slice
+
+
+    #少なくとも上の値はmin_x_point[1]-10までなので絶対に入る
+    def get_hane_left_rec(self,hidari_point,nemoto_point):
+        width = 20
+        left_x = hidari_point[0]-2
+        right_x = nemoto_point[0]-2
+        top_y = max(hidari_point[1],nemoto_point[1])-10
+        bottom_y = top_y + width
+        img_slice = self.img_masked[top_y:bottom_y,left_x:right_x,:]#トリミング
+        img_fit = cv2.resize(img_slice,dsize = (20,20))
+        return img_fit
 
 
 #小のクラス 
-class Sho (Char):
-    points_num = [2,3,2] # これに合わせてfeaturepointを取得する
-    centroid_x_scopes = [[0,110],[110,145],[145,155]] #3つのcentroidの基準
-    width_scopes = [[20,80],[5,30],[20,80]]#widthの範囲
-    height_scope = [[20,100],[130,230],[20,100]] # heightの範囲
-
+class Sho(Char):
+    
     #漢字の名前だけこっちで指定
     def __init__(self,points_ori,img_paper):
         super().__init__(points_ori,img_paper)
         self.kanji = "小"
+        self.is_stock_rec = False
         
-    #スコアクラスを生成してそれを返す
-    def scoreing(self):
-        self.score = Score(self.img_sq,self.img_exp,self.kanji)
 
+    #スコアクラスを生成してそれを返す # is_stock_rec　recをdbにストックするかどうか
+    def scoreing(self,is_stock_rec):
+        self.score = Score(self.img_char,self.img_exp,self.kanji)
+        self.is_stock_rec = is_stock_rec
         #領域の数が足りないときに
         if len(self.basic_contours) == 1:
             # すべての画がつながっているパターン
@@ -452,6 +503,10 @@ class Sho (Char):
             
             self.score.add_score(ScoreItem(0,"１かくめがきれいにかけてるね",100,[contour]))
             #ここに払い判定が入る
+            rec = contour.get_left_bottom_rec()
+            if self.is_stock_rec == True:#stockモードなら
+                DB.add(rec,self.img_char,self.kanji)
+            
 
         #左下部分がうまく切り取れなかったら
         elif my_cv.distance(contour.max_x_point,contour.min_y_point) <20:#右上だけ切り取れた
@@ -459,9 +514,6 @@ class Sho (Char):
 
         else:#右上さえ切り取れなかった
             self.score.add_score(ScoreItem(2,"おてほんどおり１かくめをかこう",30,[contour]))
-    
-
-
     
     def _kaku2_check(self,contour):
         #近似輪郭を出力する
@@ -472,7 +524,7 @@ class Sho (Char):
         elif abs(contour.min_x_point[0]-contour.max_x_point[0]) < 20:
             self.score.add_score(ScoreItem(2,"２かくめのさいごはしっかりはねよう",30,[contour]))
         else:
-            approx_contour = Contour(approx,self.img_sq,None)
+            approx_contour = Contour(approx,self.img_char,None)
             my_cv.display_approx(approx_contour.img_char,approx_contour.cnt)#debug
             #左端の点から隣接しているポイントを抜き出す =>Y軸の高さを見る
             hidari_idx=approx_contour.min_x_index
@@ -487,18 +539,18 @@ class Sho (Char):
             #条件２　左の点の次の点は左の点よりもyが大きい
             #ある程度遠い位置に隣接点が存在
             
+            #TODO 10が検出
             if d1 >10 and d2 >10:
                 #距離が遠すぎる
                 print("a")
                 self._kaku2_hane_hantei(hidari_point,p1,p2,d1,d2,contour)
             #両方近い(ハネが極端に短い)
-            elif d1 <= 20 and d2 <= 20:
+            elif d1 <= 10 and d2 <= 10:
                 self.score.add_score(ScoreItem(2,"２かくめはしっかりはねよう",30,[contour]))
             #左の点にすごく近い点がある場合
             #点Aと点Bを１つの点とみなして同様の処理を行う。
             
 
-            #TODO 現在
             #p2が近いのでp2の次のやつがp2になる
             elif  d2 <= 10:
                 p2new = approx_contour.get_point(hidari_idx-2)
@@ -530,11 +582,11 @@ class Sho (Char):
     #２かくめのハネの判定の処理をまとめるためのメソッド
     def _kaku2_hane_hantei(self,hidari_point,p1,p2,d1,d2,contour):
         #print(hidari_point)
-        #my_cv.display_point(self.img_sq,hidari_point)
+        #my_cv.display_point(self.img_char,hidari_point)
         #print(p1)
-        #my_cv.display_point(self.img_sq,p1)
+        #my_cv.display_point(self.img_char,p1)
         #print(p2)
-        #my_cv.display_point(self.img_sq,p2)
+        #my_cv.display_point(self.img_char,p2)
         if d1 > 150 or d2 > 150:
             if hidari_point[1]+10 > p2[1] and p2[1] > p1[1]:#隣接点が基準点よりも下に存在しているか
                 self.score.add_score(ScoreItem(1,"２かくめのはねがおおきすぎるよ",80,[contour]))
@@ -547,9 +599,12 @@ class Sho (Char):
             my_cv.display_point(contour.img_char,p1)#debug
             if hidari_point[1]-10 < p2[1] and p2[1] < p1[1]:#隣接点が基準点よりも下に存在しているか
                 #ハネの向きはok!
-
                 self.score.add_score(ScoreItem(1,"２かくめがしっかりはねれているね",80,[contour]))
-                #羽の先がはらえているかチェックする
+                
+                #ハネ判定
+                rec = contour.get_hane_left_rec(hidari_point,p2)#判定部分の矩形領域の切り出し
+                if self.is_stock_rec == True:#stockモードなら
+                    DB.add(rec,self.img_char,self.kanji)
             else :
                 self.score.add_score(ScoreItem(2,"２かくめのはねをかくにんしよう",30,[contour]))
 
@@ -558,11 +613,13 @@ class Sho (Char):
         #左上、右下がひとつに定まるかのチェック
         if my_cv.distance(contour.min_x_point,contour.min_y_point) < 20 and my_cv.distance(contour.max_x_point,contour.max_y_point) <20:
             self.score.add_score(ScoreItem(0,"３かくめがきれいにかけてるね",100,[contour]))
-            #右下部分がうまく切り取れなかったら
+
+            #はねはらいはんてい
+            rec = contour.get_right_bottom_rec()
+            if self.is_stock_rec == True:#stockモードなら
+                DB.add(rec,self.img_char,self.kanji)#stockする
 
 
-            #TODO 右下で止めてるか判定が入る
-            pass
         elif my_cv.distance(contour.min_x_point,contour.min_y_point) <20:#右上だけ切り取れた
                 self.score.add_score(ScoreItem(1,"３かくめのかたちをかくにんしよう",60,[contour]))
         else:
@@ -578,19 +635,20 @@ class Mizu(Char):
         self.kanji = "水"
 
     #スコアクラスを生成してそれを返す
-    def scoreing(self):
-        self.score = Score(self.img_sq,self.img_exp,self.kanji)
+    def scoreing(self,is_stock_rec):
+        self.score = Score(self.img_char,self.img_exp,self.kanji)
         self.score.add_score(ScoreItem(2,"サンプルテキスト",0,[self.basic_contours]))         
         return self.score
 
 
 
-#学習系のクラス
-#左の払い:0,右の払い:1,下の払い:2,止め3,左へのハネ4,右へのハネ5
-class Recognizer():
-    def __init__(self):
-        self.picks = None
-    def stack(self):
-        pass
-    def predict(self):
-        pass
+class Char_Sample(Char):
+    def __init__(self,points_ori,img_paper):
+        super().__init__(points_ori,img_paper)
+        self.kanji = "サンプル"
+
+    #スコアクラスを生成してそれを返す
+    def scoreing(self,is_stock_rec):
+        self.score = Score(self.img_char,self.img_exp,self.kanji)
+        self.score.add_score(ScoreItem(2,"サンプルテキスト",0,[self.basic_contours]))         
+        return self.score
