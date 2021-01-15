@@ -26,7 +26,7 @@ def execute(img_ori):
         
         return False, "creating_paper"
     try:
-        score1s, score2s = paper.get_scores()
+        score1s, score2s = paper.get_scores(False)
         return score1s, score2s
     except:
         return False, "getting_score"
@@ -39,7 +39,7 @@ def execute_debug(img_ori):
     print("done_cutting_paper")
     paper = Paper(img_paper,"Sho","Mizu")#TODO この文字は後で認識すること
     print("done paper")
-    score1s, score2s = paper.get_scores()
+    score1s, score2s = paper.get_scores(False)
     print("done score")
     return score1s, score2s
 
