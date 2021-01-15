@@ -159,5 +159,9 @@ def arrange_approx_points(points):
     stack.append(points[s2_idx[3]])
     stack.append(points[s_idx[3]])
     stack.append(points[s2_idx[0]])
-    print(np.stack(stack))
+    #print(np.stack(stack))
     return  np.stack(stack)
+
+#スコアの上限値と下限値, 値の上限値、下限値、値を入力してscoreを返す
+def get_mm_score(s_max,s_min,v_max,v_min):
+    pass
