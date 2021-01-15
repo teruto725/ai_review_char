@@ -131,8 +131,8 @@ class Paper():
     #スコア一覧を返す(ここでスコアを作成する)
     def get_scores(self,is_stock_rec):
         score1s = list(map(lambda char:char.scoreing(is_stock_rec),self.char1s))#Score配列
-        #score2s = list(map(lambda char:char.scoreing(is_stock_rec),self.char2s))#Score配列
-        score2s = None
+        score2s = list(map(lambda char:char.scoreing(is_stock_rec),self.char2s))#Score配列
+        
         return score1s, score2s
 
 class Char():
@@ -743,7 +743,9 @@ class Mizu(Char):
              
         elif len(self.basic_contours) >3:
             self.score.add_item_phase1("かんじのかたちがへんだよ",False)
-    
+
+        return self.score
+
     def _con1_check(self,contour):
         flg, approx = contour.get_approx(4,10000,30,0.01)
         if flg == False:#approxがうまく切り取れなかった

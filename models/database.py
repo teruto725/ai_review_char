@@ -26,8 +26,8 @@ class DB():
         label = "0"
         img_rec_path = "img_recs/"+str(idx)+".png"
         img_char_path  = "img_chars/"+str(idx)+".png"
-        #cv2.imwrite(img_rec_path, img_rec)#画像の保存
-        #cv2.imwrite(img_char_path, img_char)#画像の保存
+        cv2.imwrite(img_rec_path, img_rec)#画像の保存
+        cv2.imwrite(img_char_path, img_char)#画像の保存
         #足す
         si = pd.Series([img_rec_path, img_char_path, kanji,label], index=['img_rec_path', 'img_char_path', 'kanji', "label"])
         df = df.append(si, ignore_index=True)
