@@ -4,9 +4,9 @@ import cv2
 import math
 from pprint import pprint 
 import sys
-from models.models import *
+from .models.models import *
 #自作モジュール
-from models import my_cv
+from .models import my_cv
 
 #TODO asyncで書かないとダメそう
 
@@ -23,6 +23,7 @@ def execute(img_ori):
     try:
         paper = Paper(img_paper,"Sho","Mizu")#TODO この文字は後で認識すること
     except:
+        
         return False, "creating_paper"
     try:
         score1s, score2s = paper.get_scores()
@@ -45,6 +46,6 @@ def execute_debug(img_ori):
 #デバックで実行する用
 if __name__=="__main__":
     img_paper = cv2.imread('./sample_images/work8.png')#debug用
-    score1s, score2s = execute_debug(fa)
+    score1s, score2s = execute_debug(img_paper)
     for s in score1s:
         s.print_debug()

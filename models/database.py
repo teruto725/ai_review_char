@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import cv2
-from models import my_cv
+from .models import my_cv
 import pandas as pd
 #左の払い:0,右の払い:1,下の払い:2,止め3,左へのハネ4,右へのハネ5
 LABELS = ["harai","tome"]
