@@ -34,10 +34,14 @@ def display_point(img,point,output_file_path="./tmp/tmp.png"):
 # approxの描画
 def display_approx(img,approx,output_file_path="./tmp/tmp.png"):
     img_copy = img.copy()
+    approx = np.array(approx)
+    leng = len(approx)
+    alpha=int(240/leng)
     cv2.polylines(img_copy, [approx.reshape(-1,2)], True, (0,0,255), thickness=1, lineType=cv2.LINE_8)
     for i,app in enumerate(approx):
-        cv2.circle(img_copy, (app[0][0],app[0][1]), 3, (0, 0+35*i, 0), thickness=-1)
+        cv2.circle(img_copy, (app[0][0],app[0][1]), 3, (0, 0+i*alpha, 0), thickness=-1)
     display_color(img_copy,output_file_path)
+
 
 
 #threshold以上の画素値を白にする
