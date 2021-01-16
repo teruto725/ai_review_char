@@ -26,7 +26,7 @@ def execute(img_ori):
         
         return False, "creating_paper"
     try:
-        score1s, score2s = paper.get_scores(False)
+        score1s, score2s = paper.get_scores(False) #trueなら画像をストックする
         return score1s, score2s
     except:
         return False, "getting_score"
@@ -42,6 +42,10 @@ def execute_debug(img_ori):
     score1s, score2s = paper.get_scores(False)
     print("done score")
     return score1s, score2s
+
+#学習用に矩形領域を切り出してストックする
+def stock_recs(img_ori):
+    pass
 
 #デバックで実行する用
 if __name__=="__main__":

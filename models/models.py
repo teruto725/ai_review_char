@@ -282,10 +282,20 @@ class Score():
             item= ScoreItem(label=3,contours=contours,message=message,score=score)
         self.items_phase2.append(item)
 
-    #phase3アイテム追加用 #is_okははねはらいがあってたかどうか #idxがどこか#centroid(x,y)のポイント座標
+    #phase3アイテム追加用 #is_okははねはらいがあってたかどうか #idxがどこか#centroid(x,y)のポイント座標 
     def add_item_phase3(self,message,centroid,score,is_ok):
         idx = len(self.items_phase3)
-        item = ScoreItem(label=4,message=message,idx=idx,is_ok=is_ok,centroid = centroid,score=score)#idx どれかを示す
+        phase3_label = None #0ならまる1ならさんかく2ならバツ
+        if is_ok == False:#はねとかだとFalseが返ってくるから矯正で2
+            phase3_label = 2
+        else:
+            if score > 70 :
+                phase3_label = 0
+            elif score > 30:
+                phase3_label = 1
+            else:
+                phase3_label = 2
+        item = ScoreItem(label=4,message=message,idx=idx,phase3_label=phase3_label,centroid = centroid,score=score)#idx どれかを示す
         self.items_phase3.append(item)
 
     #アイテム追加用 
@@ -303,30 +313,44 @@ class Score():
     
     #フェーズ１の合否を返す bool
     def get_result_phase1(self):
-        return True  
+        if len([0 for item in self.items_phase1 if item.get_label() == 1])== 0:
+            return True
+        else:
+            return False
+    
+    #フェーズ１のメッセージを返す
+    def get_items_phase1(self):
+        return [ item.get_message() for item in self.items_phase1 ]
     #フェーズ２の画像を返す 255*255*3
     def get_img_phase2(self):
         return self.img_overlay
     #フェーズ２のこうひょうかこめんとを返す
     def get_items_good_phase2(self):
-        return ["goood!","Nice!"]
+        return [item.get_message() for item in self.items_phase2  if item.get_label() == 2]
     #フェーズ２のアドバイスを返す
     def get_items_tips_phase2(self):
-        return ["２かくめをもっとつよくしっかりかこう","1かくめをもっとつよくしっかりかこう"]    
+        return [item.get_message() for item in self.items_phase2  if item.get_label() == 3]   
     #フェーズ２のスコアを返す: int 30点満点
+    def get_score_phase2(self):
+        return int(np.average([item.get_score() for item in self.items_phase2])*30/100)
+    #フェーズ２の合否を返す: bool
     def get_result_phase2(self):
-        return 35
-    #フェーズ３の画像を返す # TODO 実装
+        if len([item.get_message() for item in self.items_phase2  if item.get_label() == 3]) == 0:
+            return True
+        else:
+            return False
+    #フェーズ３の画像を返す 
     def get_img_phase3(self):
         return self._create_img_phase3()
     
-    # フェーズ３のitemを返す #TODO 実装
-    def get_items_phase3(self):#[idx,message,is_ok]のリストを返す is_ok:True=できてる :Falseできてない
-        return [[0,"１かくめのおわりがただしくはねれてますね",True]]
+    # フェーズ３のitemを返す 
+    def get_items_phase3(self):#[idx,message,phase3_label]のリストを返す idx通し番号。画像内の番号と連携している
+        return [item.to_list_phase3() for item in self.items_phase3] 
 
-    #フェーズ３のスコアを返す: int 20点満点 # TODO 実装
+    #フェーズ３のスコアを返す: int 20点満点 
     def get_result_phase3(self):
-        return 10
+        return int(np.average([item.get_score() for item in self.items_phase3])*20/100)
+         
 
     #漢字を返す
     def get_kanji(self):
@@ -360,32 +384,39 @@ class Score():
 
 
 
-#評価項目クラス label 0~2  message: 内容 score単体スコア, contour: contour クラス
+#評価項目クラス label 0~4  message: 内容 score単体スコア, contour: contour クラス
 class ScoreItem():
-    def __init__(self,label,contours=None,message=None,score=None,idx=None,is_ok=None,centroid=None):
+    def __init__(self,label,contours=None,message=None,score=None,idx=None,phase3_label=None,centroid=None):
         self.label = label# 0:構造に関するエラー 1:形が崩れていないかの部分で高評価 　2:形が崩れていないかの部分で低評価 3:止めはね払いの部分で綺麗かどうか       
         self.message = message # エラーメッセージ 
         self.contours = contours# 領域
         self.score = score # スコアポイント
-
+        self.centroid  = centroid
+        self.phase3_label  = phase3_label
+        self.idx = idx
     def __str__(self):
         return self.message
 
-    def get_label(self): # 0:褒めている,1:できれば直したい(斜め向いてるとか),2:絶対に治そう(はらってないとか)
+    def get_label(self): # 0:phase1の高評価,1:pahse1の低評価,2:phase2の高評価,3:phase2の低評価, 4:phase4の評価
         return self.label
     def get_message(self):#メッセージ(内容)を返す
         return self.message
     def get_centroid(self): #重心を返す 領域複数の場合は平均
-        x_stock = list()
-        y_stock = list()
-        for contour in self.contours:
-            x_stock.append(contour.centroid[0])
-            y_stock.append(contour.centroid[1])
-        return [ int(np.average(x_stock)),int(np.average(y_stock)) ]
+        if self.centroid is None:
+            x_stock = list()
+            y_stock = list()
+            for contour in self.contours:
+                x_stock.append(contour.centroid[0])
+                y_stock.append(contour.centroid[1])
+            return [ int(np.average(x_stock)),int(np.average(y_stock)) ]
+        else:
+            return self.centroid
     def get_contour(self): #領域を返す
         return ([contour.cnt for contour in self.contours])
-
-    
+    def get_score(self):
+        return self.score
+    def to_list_phase3(self):#フェーズ３用のlistを返す
+        return [self.idx,self.message,self.phase3_label]
 #領域クラス
 class Contour():
     def __init__(self,cnt,img_char,hie):
@@ -510,7 +541,7 @@ class Contour():
 
     #左下の矩形領域を取り出す
     def get_left_bottom_rec(self):
-        left_bottom_point = [self.min_x_point[0],self.max_y_point[1]]#左下のポイント
+        left_bottom_point = self.left_bottom_point#左下のポイント
         width = 20
         left_x = left_bottom_point[0]-4
         right_x = left_x+width
@@ -679,7 +710,7 @@ class Sho(Char):
             if hidari_point[1]+10 > p2[1] and p2[1] > p1[1]:#隣接点が基準点よりも下に存在しているか
                 self.score.add_item_phase3("２かくめのはねがおおきすぎるよ",hidari_point,80,False)
             else :
-                self.score.add_item_phase2("２かくめのせんはまっすぐたてにかこう",[contour],60,True)
+                self.score.add_item_phase2("２かくめのせんはまっすぐたてにかこう",[contour],60,False)
         #ちょうどいい長さ
         else:
             #my_cv.display_point(contour.img_char,hidari_point)#debug
@@ -687,12 +718,13 @@ class Sho(Char):
             #my_cv.display_point(contour.img_char,p1)#debug
             if hidari_point[1]-10 < p2[1] and p2[1] < p1[1]:#隣接点が基準点よりも下に存在しているか
                 #ハネの向きはok!
-                self.score.add_item_phase3("２かくめがしっかりはねれているね",hidari_point,100,False)
+                self.score.add_item_phase3("２かくめがしっかりはねれているね",hidari_point,100,True)
                 
                 #ハネ判定
                 rec = contour.get_hane_left_rec(hidari_point,p2)#判定部分の矩形領域の切り出し
                 if self.is_stock_rec == True:#stockモードなら
                     DB.add(rec,self.img_char,self.kanji)
+                
             else :
                 self.score.add_item_phase3("２かくめのはねのむきがおかしいよ",hidari_point,50,False)
                 
@@ -727,10 +759,11 @@ class Mizu(Char):
 
     #スコアクラスを生成してそれを返す
     def scoreing(self,is_stock_rec):
+        my_cv.display_color(self.img_char)
         self.score = Score(self.img_char,self.img_exp,self.kanji)
         self.is_stock_rec = is_stock_rec
 
-
+        
         
         #とりあえず３つに分けれるかどうか
 
@@ -775,12 +808,12 @@ class Mizu(Char):
                     self.score.add_item_phase2("１かくめのよこせんのながさがみじかいよ",[contour],60,False)
                     flg =False
                 
-                elif migiue[1] > kakidashi_point[1]-10:
+                elif migiue[1] > kakidashi_point[1]+10:
                     self.score.add_item_phase2("１かくめのよこせんはややななめうえにむかってかこう",[contour],60,False)
                     flg =False
                 
                 #横線と斜め線について
-                if abs(kakidashi_point[0] - kakiowari_point[0]) > 50:
+                if abs(kakidashi_point[0] - kakiowari_point[0]) > 30:
                     self.score.add_item_phase2("１かくめのかきだしとかきおわりのいちがずれすぎてるよ",[contour],60,False)
                     flg =False
                 #ここらへんはもっと微妙なのが狙える
@@ -800,7 +833,7 @@ class Mizu(Char):
                     rec = contour.get_left_bottom_rec()
                     if self.is_stock_rec == True:#stockモードなら
                         DB.add(rec,self.img_char,self.kanji)
-                        
+                    my_cv.display_color(rec)
                 
         
     def _con2_check(self,contour):
@@ -916,7 +949,7 @@ class Mizu(Char):
                     rec = contour.get_hane_right_rec(kaku4_owari)#判定部分の矩形領域の切り出し
                     if self.is_stock_rec == True:#stockモードなら
                         DB.add(rec,self.img_char,self.kanji)
-            
+                    my_cv.display_color(rec)
                     self.score.add_item_phase3("４かくめがしっかりはらえているね",kaku4_owari,100,True)
         return self.score
 
@@ -989,6 +1022,7 @@ class Mizu(Char):
                 rec = contour.get_hane_left_rec(hidari_point,p2)#判定部分の矩形領域の切り出し
                 if self.is_stock_rec == True:#stockモードなら
                     DB.add(rec,self.img_char,self.kanji)
+                my_cv.display_color(rec)
             else :
                 self.score.add_item_phase3("２かくめのはねのむきがおかしいよ",hidari_point,50,False)
     
