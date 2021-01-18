@@ -42,6 +42,16 @@ def display_approx(img,approx,output_file_path="./tmp/tmp.png"):
         cv2.circle(img_copy, (app[0][0],app[0][1]), 3, (0, 0+i*alpha, 0), thickness=-1)
     display_color(img_copy,output_file_path)
 
+# approxの描画
+def display_approx2(img,approx,output_file_path="./tmp/tmp.png"):
+    img_copy = img.copy()
+    approx = np.array(approx)
+    leng = len(approx)
+    alpha=int(240/leng)
+    cv2.polylines(img_copy, [approx.reshape(-1,2)], True, (0,0,255), thickness=30, lineType=cv2.LINE_8)
+    for i,app in enumerate(approx):
+        cv2.circle(img_copy, (app[0][0],app[0][1]), 30, (0, 0+i*alpha, 0), thickness=-1)
+    display_color(img_copy,output_file_path)
 
 
 #threshold以上の画素値を白にする
@@ -53,7 +63,6 @@ def threshold(img,threshold):
 def gray(img):
     img_gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     return img_gray    
-
 
 
 
@@ -75,33 +84,38 @@ def cutting_paper(img):
     #輪郭抽出
     contours, hierarchy = cv2.findContours(img_noise, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-    print(np.shape(contours))
+
     #２番目にでかい四角が紙の輪郭なのでpaper_tapを取り出す
-    pic_tap = None #画像の輪郭
     paper_tap = None #紙の輪郭
     for i, con in enumerate(contours):
+        
         size = cv2.contourArea(con)
-        if pic_tap is None:
-            pic_tap = (con,size)
-            continue
-        if pic_tap[1] <= size:
-            pic_tap = (con,size)
-            continue
-        elif paper_tap is None:
-            paper_tap = (con,size)
-        elif paper_tap[1] <= size:
-            paper_tap = (con,size)
-    print(np.shape(paper_tap[0]))
+        if 12000000>size > 5000000:#大きさが100000以上
+            
+            #print(size)    
+            epsilon = 0.05*cv2.arcLength(con,True)
+            approx= cv2.approxPolyDP(con,epsilon,True)#紙の頂点座標
+            display_approx2(img,approx)
+            if len(approx) == 4:
+                if paper_tap is None:
+                    paper_tap = (approx,size)
+                    continue
+                if paper_tap[1] <= size:
+                    paper_tap = (approx,size)
     #直線近似して描画
     #display_con(img,paper_tap[0])
-    epsilon = 0.1*cv2.arcLength(paper_tap[0],True)
-    paper_corners= cv2.approxPolyDP(paper_tap[0],epsilon,True)#紙の頂点座標
-    paper_corners = arrange_approx_points(paper_corners)# ソートする
+
+    #display_approx2(img,paper_tap[0])
+    #print("approx:"+str(len(paper_tap[0])))
+    #print(paper_tap[1])
+    
+    paper_tap = arrange_approx_points(paper_tap[0])# ソートする
     fix_con = np.array([[[0,0]],[[x,0]],[[x,y]],[[0,y]]], dtype="int32")#整形後のサイズ
 
-    M = cv2.getPerspectiveTransform(np.float32(paper_corners),np.float32(fix_con))#変換行列の生成
+    M = cv2.getPerspectiveTransform(np.float32(paper_tap),np.float32(fix_con))#変換行列の生成
     img_trans = cv2.warpPerspective(img,M,(x,y))#変換
     img_rotate = cv2.rotate(img_trans, cv2.ROTATE_90_COUNTERCLOCKWISE)#反時計回りに回転
+    #display_color(img_trans)
     return img_rotate
 
 #pt1とpt2の角度算出する
@@ -140,6 +154,7 @@ def mor_clear_filter(img_thresh):
 
 def arrange_approx_points(points):
     stack = list()
+    
     s_idx = np.argsort([ p[0][0] + p[0][1] for p in points])#左上から右下
     s2_idx = np.argsort([ p[0][0] - p[0][1] for p in points])#左下から右上
     stack.append(points[s_idx[0]])
@@ -149,6 +164,3 @@ def arrange_approx_points(points):
     #print(np.stack(stack))
     return  np.stack(stack)
 
-#スコアの上限値と下限値, 値の上限値、下限値、値を入力してscoreを返す
-def get_mm_score(s_max,s_min,v_max,v_min):
-    pass
