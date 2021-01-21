@@ -95,7 +95,7 @@ def cutting_paper(img):
             #print(size)    
             epsilon = 0.05*cv2.arcLength(con,True)
             approx= cv2.approxPolyDP(con,epsilon,True)#紙の頂点座標
-            display_approx2(img,approx)
+            #display_approx2(img,approx)
             if len(approx) == 4:
                 if paper_tap is None:
                     paper_tap = (approx,size)

@@ -35,14 +35,6 @@ class Paper():
         _ = list(map(lambda char1:char1.set_img_exp(self.char1_exp),self.char1s))#例題画像をセットする
         _ = list(map(lambda char2:char2.set_img_exp(self.char2_exp),self.char2s))#例題画像をセットする
         
-        
-        #print(self.char1_exp.points_ori)
-        #print(self.char2_exp.points_ori)
-        #self.char1_exp.display()
-        #self.char2_exp.display()
-        #_ = list(map(lambda char1:char1.set_img_exp(self.char1_exp.img_char),self.char1s))#例題画像をセットする
-        #_ = list(map(lambda char2:char2.set_img_exp(self.char2_exp.img_char),self.char2s))#例題画像をセットする
-        
     #label付けを行う
     def _labeling(self):
         fty = Factory()
@@ -103,10 +95,6 @@ class Paper():
                 gray[gray0 >= (l+1)*255/5] = 0
                 gray[gray0 < (l+1)*255/5] = 255
             contours, _ = cv2.findContours(gray, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-            #print(type(contours))
-            #print(np.shape(contours))
-            #my_cv.display_con(img,contours)#debug
-            #print(np.shape(contours))#ここまではok
             chars = list()
             for i, cnt in enumerate(contours):
                 arclen = cv2.arcLength(cnt, True)# 輪郭の周囲を取得
@@ -120,7 +108,6 @@ class Paper():
                 if approx.shape[0] == 4 and upper_thre > area > lower_thre and cv2.isContourConvex(approx) :
                     maxCosine = 0
                     #my_cv.display_con(img,[cnt])
-                    
                     for j in range(2, 5):   # ジョイントエッジ間の角度の最大コサインを見つけます
                         cosine = abs(my_cv.angle(approx[j%4], approx[j-2], approx[j-1]))
                         maxCosine = max(maxCosine, cosine)
@@ -134,7 +121,7 @@ class Paper():
                             #char.display()
                             #print(area)
                             chars.append(char)
-            print(len(chars))
+            #print(len(chars))
             if sq_num+1>=len(chars)>=sq_num-1:
                 return chars
 
@@ -222,32 +209,7 @@ class Char():
         plt.axis('off')
         plt.show()
         
-"""
-    #　ポイントを出力する   
-    def get_feature_points(self):
-        thre_img = np.copy(self.img_thresh)
-        contours, _ = cv2.findContours(thre_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-        rate_parms = [800]
-        for n, rate in enumerate(rate_parms):
-            resimg = self.img_char.copy() // 2 + 128
-            for i, cnt in enumerate(contours):
-                # 輪郭の周囲に比例する精度で輪郭を近似する
-                size = cv2.contourArea(cnt)
-                if size == 0:
-                    continue
-                #1.2をかけることで大きい図形に対してのバイアスを強くしている
-                approx = cv2.approxPolyDP(cnt, rate/size*1.5, True) #第２引数が小さければ細かい近似大きければ大雑把な近似 1.2をかけること
-                print(int(size))
-                print(rate/size)
-                if size>(255*255-5000):
-                    continue
-                cv2.polylines(resimg, [approx.reshape(-1,2)], True, 
-                            (0,0,255), thickness=1, lineType=cv2.LINE_8)
-                for app in approx:
-                    cv2.circle(resimg, (app[0][0],app[0][1]), 2, (0, 255, 0), thickness=-1)
-            #my_cv.display_color(resimg)
-"""
-    
+
 
 
 #文字１つに対するスコアクラス。
@@ -257,6 +219,9 @@ class Char():
 
 
 class Score():
+    BLUE = (194,136,106)
+    YELLOW = (0,217,255)
+    RED = (65,83,215)
     def __init__(self,img_char, img_exp,kanji):
         self.img_char = img_char#漢字本体の画像
         self.img_exp = img_exp#お手本画像=co
@@ -266,7 +231,7 @@ class Score():
         self.items_phase2 = list()#第２フェーズのscorelist
         self.items_phase3 = list()#第３フェーズのscorelist
         self.items_phase4 = list()#第４フェーズのスコアリストs
-        
+        self.items_phase3_idx = 0 #３フェーズのidxカウント用
     # お手本をimg?hcarに重ねたものを返す #TODO 実装する
     def _img_overlay(self):
         img_stack = self.img_char*0.7 + self.img_exp*0.3
@@ -290,7 +255,29 @@ class Score():
 
     #はねはらいとめ画像を生成する # TODO 実装する
     def _create_img_phase3(self):
-        return self.img_exp
+        img = np.copy(self.img_char)
+        for i in range(1,self.items_phase3_idx+1):
+            stack_score = list()
+            temp_item = None
+            for item in self.items_phase3:
+                if item.idx == i:
+                    stack_score.append(item.get_score())
+                    temp_item = item
+            ave = np.average(stack_score)
+            if ave > 80 :#正解
+                self._plot_phase3_item(img,i,temp_item.get_centroid(),Score.BLUE)
+            elif ave > 20:#さんかく
+                self._plot_phase3_item(img,i,temp_item.get_centroid(),Score.YELLOW)
+            else:
+                self._plot_phase3_item(img,i,temp_item.get_centroid(),Score.RED)
+        return img
+
+
+    def _plot_phase3_item(self,img,idx,centroid,color):
+        img = cv2.circle(img,centroid, 13, color, 3)
+        cv2.putText(img, str(idx), (centroid[0]-4, centroid[1]-20), cv2.FONT_HERSHEY_PLAIN, 2, color, 2, cv2.LINE_AA)
+        return img
+
 
     #アイテム追加よう
     def add_item_phase1(self,message,is_ok):
@@ -312,17 +299,21 @@ class Score():
 
     #phase3アイテム追加用 #is_okははねはらいがあってたかどうか #idxがどこか#centroid(x,y)のポイント座標 
     def add_item_phase3(self,message,centroid,score,is_ok):
-        idx = len(self.items_phase3)
+        idx = self.items_phase3_idx
+        for i, item in enumerate( self.items_phase3):
+            if my_cv.distance(item.get_centroid(),centroid)<25:#同じ位置を見ていたら
+                idx = item.idx
+                centroid = item.get_centroid()
+                break
+        else:
+            idx += 1
+            self.items_phase3_idx =idx
         phase3_label = None #2ならまる1ならさんかく1ならバツ
         if is_ok == False:#はねとかだとFalseが返ってくるから矯正で2
             phase3_label = 0
         else:
-            if score > 70 :
-                phase3_label = 2
-            elif score > 30:
-                phase3_label = 1
-            else:
-                phase3_label = 0
+            phase3_label = 1
+        
         item = ScoreItem(label=4,message=message,idx=idx,phase3_label=phase3_label,centroid = centroid,score=score)#idx どれかを示す
         self.items_phase3.append(item)
 
@@ -388,7 +379,7 @@ class Score():
     def get_score_phase3(self):
         if len(self.get_items_phase3()) == 0:
             return 0
-        return int(np.average([item.to_list_phase3()[2]*10 for item in self.items_phase3])*20/100)
+        return int(np.average([item.get_score() for item in self.items_phase3])*20/100)
          
 
     #漢字を返す
@@ -400,8 +391,9 @@ class Score():
         return self.img_char
 
     #総得点を返す 0~100
-    def get_all_score_point(self):
-        return 100
+    def get_total_score_point(self):
+        score1 = 50 if self.get_result_phase1() else 0
+        return score1 + self.get_score_phase2()+self.get_score_phase4()
 
     # debug 用
     def print_debug(self):
@@ -421,13 +413,13 @@ class Score():
         print("phase3")
         my_cv.display_color(self.get_img_phase3())
         for item in self.items_phase3:
-            print(item.message)
+            print(item.to_list_phase3())
         print("score:"+str(self.get_score_phase3()))
         print("phase4")
         #my_cv.display_color(self.get_img_phase1())
         for item in self.items_phase4:
             print(item.message)
-        
+        print("total_score:"+str(self.get_total_score_point()))
 
 
 
@@ -449,15 +441,7 @@ class ScoreItem():
     def get_message(self):#メッセージ(内容)を返す
         return self.message
     def get_centroid(self): #重心を返す 領域複数の場合は平均
-        if self.centroid is None:
-            x_stock = list()
-            y_stock = list()
-            for contour in self.contours:
-                x_stock.append(contour.centroid[0])
-                y_stock.append(contour.centroid[1])
-            return [ int(np.average(x_stock)),int(np.average(y_stock)) ]
-        else:
-            return self.centroid
+        return tuple(self.centroid)
     def get_contour(self): #領域を返す
         return ([contour.cnt for contour in self.contours])
     def get_score(self):
@@ -616,7 +600,7 @@ class Contour():
         width = 20
         left_x = hidari_point[0]-2
         right_x = nemoto_point[0]-2
-        top_y = max(hidari_point[1],nemoto_point[1])-10
+        top_y = max(hidari_point[1],nemoto_point[1])-15
         bottom_y = top_y + width
         img_slice = self.img_masked[top_y:bottom_y,left_x:right_x,:]#トリミング
         img_fit = cv2.resize(img_slice,dsize = (20,20))
@@ -691,9 +675,9 @@ class Sho(Char):
                 label, confidence = Recognizer.predict(rec_gray)
                 if label == 0:
                     self.score.add_item_phase3("2かくめのおわりがきれいにはらえているね",centroid,100,True)
-                    print(label)
+                    #print(label)
                 else:
-                    print(label)
+                    #print(label)
                     self.score.add_item_phase3("2かくめのおわりがはらえているかかくにんしよう",centroid,0,False)
 
         #左下部分がうまく切り取れなかったら
@@ -727,7 +711,7 @@ class Sho(Char):
                 self._kaku2_hane_hantei(hidari_point,p1,p2,d1,d2,contour,approx_contour)
             #両方近い(ハネが極端に短い)
             elif d1 <= 10 and d2 <= 10:
-                self.score.add_item_phase3("１かくめはしっかりはねよう",hidari_point,60,False)
+                self.score.add_item_phase3("１かくめはしっかりはねよう",p2,60,False)
                 
             #左の点にすごく近い点がある場合点Aと点Bを１つの点とみなして同様の処理を行う。
             #p2が近いのでp2の次のやつがp2になる
@@ -763,7 +747,7 @@ class Sho(Char):
         #my_cv.display_point(self.img_char,p2)
         if d1 > 150 or d2 > 150:
             if hidari_point[1]+10 > p2[1] and p2[1] > p1[1]:#隣接点が基準点よりも下に存在しているか
-                self.score.add_item_phase3("１かくめのはねがおおきすぎるよ",hidari_point,80,False)
+                self.score.add_item_phase3("１かくめのはねがおおきすぎるよ",p2,80,False)
             else :
                 self.score.add_item_phase2("１かくめのせんはまっすぐたてにかこう",[contour],60,False)
         #ちょうどいい長さ
@@ -778,19 +762,20 @@ class Sho(Char):
             #my_cv.display_point(contour.img_char,p1)#debug
             if hidari_point[1]-10 < p2[1] and p2[1] < p1[1]:#隣接点が基準点よりも下に存在しているか
                 #ハネの向きはok!
-                self.score.add_item_phase3("１かくめがしっかりはねれているね",hidari_point,100,True)
+                self.score.add_item_phase3("１かくめがしっかりはねれているね",p2,100,True)
                 
                 #ハネ判定
                 rec,centroid = contour.get_hane_left_rec(hidari_point,p2)#判定部分の矩形領域の切り出し
+                #my_cv.display_gray(rec)
                 if self.is_stock_rec == True:#stockモードなら
                     DB.add(rec,self.img_char,self.kanji)
                 else:#いける
                     rec_gray = cv2.cvtColor(rec, cv2.COLOR_BGR2GRAY)
                     label, confidence = Recognizer.predict(rec_gray)
                     if label == 0:
-                        self.score.add_item_phase3("1かくめのはねのさきがきれいにはらえているね",centroid,100,True)
+                        self.score.add_item_phase3("１かくめのはねのさきがきれいにはらえているね",centroid,100,True)
                     else:
-                        self.score.add_item_phase3("1かくめのはねのさきはしっかりはらおう",centroid,0,False)
+                        self.score.add_item_phase3("１かくめのはねのさきはしっかりはらおう",centroid,0,False)
             else :
                 self.score.add_item_phase3("１かくめのはねのむきがおかしいよ",hidari_point,50,False)
                 
@@ -1055,7 +1040,6 @@ class Mizu(Char):
                             self.score.add_item_phase3("４かくめのさきがしっかりはらえているね",centroid,100,True)
                         else:
                             self.score.add_item_phase3("４かくめのはねのさきはしっかりはらおう",centroid,0,False)
-                    self.score.add_item_phase3("４かくめがしっかりはらえているね",kaku4_owari,100,True)
         return self.score
 
     #２かくめようのひだりのはねがうまくいってるかをみるメソッド
@@ -1111,7 +1095,7 @@ class Mizu(Char):
         #my_cv.display_point(self.img_char,p2)
         if d1 > 150 or d2 > 150:
             if hidari_point[1]+10 > p2[1] and p2[1] > p1[1]:#隣接点が基準点よりも下に存在しているか
-                self.score.add_item_phase3("１かくめのはねがおおきすぎるよ",hidari_point,80,False)
+                self.score.add_item_phase3("１かくめのはねがおおきすぎるよ",p1,80,False)
             else :#線が曲がりまくって払いよりも左に来てたパターン
                 self.score.add_item_phase2("１かくめのせんはまっすぐたてにかこう",[contour],60,False)
         #ちょうどいい長さ
@@ -1121,7 +1105,7 @@ class Mizu(Char):
             #my_cv.display_point(contour.img_char,p1)#debug
             if hidari_point[1]-10 < p2[1] and p2[1] < p1[1]:#隣接点が基準点よりも下に存在しているか
                 #ハネの向きはok!
-                self.score.add_item_phase3("１かくめがしっかりはねれているね",hidari_point,100,True)
+                self.score.add_item_phase3("１かくめがしっかりはねれているね",p1,100,True)
                 
                 #ハネ判定
                 rec,centroid = contour.get_hane_left_rec(hidari_point,p2)#判定部分の矩形領域の切り出し
@@ -1136,7 +1120,7 @@ class Mizu(Char):
                         self.score.add_item_phase3("１かくめのはねのさきはしっかりはらおう",centroid,0,False)
          
             else :
-                self.score.add_item_phase3("１かくめのはねのむきがおかしいよ",hidari_point,50,False)
+                self.score.add_item_phase3("１かくめのはねのむきがおかしいよ",p1,50,False)
     
     #画３の判定 斜めかどうか
     def _kaku3_check(self,kaku3_kakidashi,kaku3_kakiowari1,kaku3_kakiowari2,contour):
