@@ -5,4 +5,4 @@ venv/
 models/__pycache__/
 .DS_Store
 img_chars/
-img_exps/
+img_recs/
