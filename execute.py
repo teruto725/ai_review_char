@@ -17,6 +17,7 @@ def execute(img_ori):
     path.set_product_path()#rootpathをサーバように変更する
     img_paper = None
     try:
+        img_ori = cv2.rotate(img_ori, cv2.ROTATE_90_CLOCKWISE)#左側が下になるようにする
         img_paper = my_cv.cutting_paper(img_ori)#紙部分を切り出す
     except:
         return False, "cutting_paper"
