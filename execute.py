@@ -38,6 +38,7 @@ def execute(img_ori):
 #デバッグ用のメソッド(エラーで止まる)
 def execute_debug(img_ori):
     path.set_product_path()#rootpathをサーバように変更する
+    img_ori = cv2.rotate(img_ori, cv2.ROTATE_90_CLOCKWISE)  # 左側が下になるようにする
     img_paper = my_cv.cutting_paper(img_ori)
     print("done_cutting_paper")
     paper = Paper(img_paper,"Sho","Mizu")#TODO この文字は後で認識すること
