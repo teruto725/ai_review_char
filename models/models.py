@@ -5,6 +5,7 @@ import math
 from . import my_cv
 from .database import DB #databaseからインポートするs
 from .recognizer import Recognizer
+from . import path
 class Factory():
     def create_char(self,char_name,char):#charの名前とcharインスタンスを渡す
         #char.display()
@@ -30,8 +31,8 @@ class Paper():
         self.char2s = self._sort_chars(self.char2s)#chars配列をソートする
         
         #expの向きエラーを解決できなかったので直読込する
-        self.char1_exp = cv2.imread("./img_exps/sho.png")
-        self.char2_exp = cv2.imread("./img_exps/mizu.png")
+        self.char1_exp = cv2.imread(path.ROOTPATH+"img_exps/sho.png")
+        self.char2_exp = cv2.imread(path.ROOTPATH+"img_exps/mizu.png")
         _ = list(map(lambda char1:char1.set_img_exp(self.char1_exp),self.char1s))#例題画像をセットする
         _ = list(map(lambda char2:char2.set_img_exp(self.char2_exp),self.char2s))#例題画像をセットする
         
@@ -204,8 +205,8 @@ class Char():
     
     #表示する
     def display(self):
-        cv2.imwrite("temp.png", self.img_char)
-        plt.imshow(plt.imread("temp.png"))
+        cv2.imwrite(path.ROOTPATH+"tmp/tmp.png", self.img_char)
+        plt.imshow(plt.imread(path.ROOTPATH+"tmp/tmp.png"))
         plt.axis('off')
         plt.show()
         
@@ -241,13 +242,13 @@ class Score():
         img = np.copy(img_char)
         shape = None
         if label == 0:
-            shape = cv2.imread("img_scores/flower_circle.png", cv2.IMREAD_UNCHANGED)
+            shape = cv2.imread(path.ROOTPATH+"img_scores/flower_circle.png", cv2.IMREAD_UNCHANGED)
         elif label == 1:
-            shape = cv2.imread("img_scores/circle.png", cv2.IMREAD_UNCHANGED)
+            shape = cv2.imread(path.ROOTPATH+"img_scores/circle.png", cv2.IMREAD_UNCHANGED)
         elif label == 2:
-            shape = cv2.imread("img_scores/triangle.png",cv2.IMREAD_UNCHANGED)
+            shape = cv2.imread(path.ROOTPATH+"img_scores/triangle.png",cv2.IMREAD_UNCHANGED)
         elif label == 3:
-            shape = cv2.imread("img_scores/check.png",cv2.IMREAD_UNCHANGED)
+            shape = cv2.imread(path.ROOTPATH+"img_scores/check.png",cv2.IMREAD_UNCHANGED)
         shape = cv2.resize(shape, (255,255))
         img[:, :] = img[:, :] * (1 - shape[:, :, 3:] / 255) + \
                       shape[:, :, :3] * (shape[:, :, 3:] / 255)
@@ -380,7 +381,10 @@ class Score():
         if len(self.get_items_phase3()) == 0:
             return 0
         return int(np.average([item.get_score() for item in self.items_phase3])*20/100)
-         
+
+    def get_score_phase4(self):
+        
+        return 0
 
     #漢字を返す
     def get_kanji(self):

@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import cv2
 import math
 
+from . import path
 
 class CNN(Chain):#出力数を受け取ってcnnを作成する
     def __init__(self):
@@ -38,7 +39,7 @@ class Recognizer():
         rec /= 255
         x = Variable(np.array(rec, dtype=np.float32))
         model = CNN()
-        chainer.serializers.load_npz("cnn.net",model)
+        chainer.serializers.load_npz(path.ROOTPATH+"cnn.net",model)
         y = model.forward(x)
         label = np.argmax(y.data[0])
         confidence = abs(y.data[0][0])*100

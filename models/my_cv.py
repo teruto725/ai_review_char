@@ -2,10 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import math
-
+from . import path
 
 #白黒画像を表示する
-def display_gray(img,output_file_path="./tmp/tmp.png"):
+def display_gray(img,output_file_path="tmp/tmp.png"):
+    output_file_path = path.ROOTPATH+output_file_path
     cv2.imwrite(output_file_path, img)
     plt.imshow(plt.imread(output_file_path))
     plt.axis('off')
@@ -13,26 +14,27 @@ def display_gray(img,output_file_path="./tmp/tmp.png"):
     plt.show()
 
 #カラー画像を表示する
-def display_color(img,output_file_path="./tmp/tmp.png"):
+def display_color(img,output_file_path="tmp/tmp.png"):
+    output_file_path = path.ROOTPATH+output_file_path
     cv2.imwrite(output_file_path, img)
     plt.imshow(plt.imread(output_file_path))
     plt.axis('off')
     plt.show()
 
 #displayのプロっと
-def display_con(img,con,output_file_path="./tmp/tmp.png"):
+def display_con(img,con,output_file_path="tmp/tmp.png"):
     im_con = img.copy()
     im_con = cv2.drawContours(im_con, con, -1, (0,255,0), 30)
     display_color(im_con,output_file_path)
 
 #座標のplot
-def display_point(img,point,output_file_path="./tmp/tmp.png"):
+def display_point(img,point,output_file_path="tmp/tmp.png"):
     im_point = img.copy() // 2 + 128
     im_point = cv2.circle(im_point,tuple(point),3,(100,0,100),thickness=-1)
     display_color(im_point,output_file_path)
 
 # approxの描画
-def display_approx(img,approx,output_file_path="./tmp/tmp.png"):
+def display_approx(img,approx,output_file_path="tmp/tmp.png"):
     img_copy = img.copy()
     approx = np.array(approx)
     leng = len(approx)
@@ -43,7 +45,7 @@ def display_approx(img,approx,output_file_path="./tmp/tmp.png"):
     display_color(img_copy,output_file_path)
 
 # approxの描画
-def display_approx2(img,approx,output_file_path="./tmp/tmp.png"):
+def display_approx2(img,approx,output_file_path="tmp/tmp.png"):
     img_copy = img.copy()
     approx = np.array(approx)
     leng = len(approx)

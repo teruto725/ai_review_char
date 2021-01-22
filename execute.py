@@ -8,20 +8,21 @@ from .models.models import *
 #自作モジュール
 from .models import my_cv
 
-#TODO asyncで書かないとダメそう
+from .models import path
 
 
 #実行　cv2型のndarrayを受け取る
 #戻り値　bool:実行できたかどうか, str:エラーメッセージ
 def execute(img_ori):
+    path.set_product_path()#rootpathをサーバように変更する
     img_paper = None
     try:
-        img_paper = my_cv.cutting_paper(img_ori)
+        img_paper = my_cv.cutting_paper(img_ori)#紙部分を切り出す
     except:
         return False, "cutting_paper"
     paper = None
     try:
-        paper = Paper(img_paper,"Sho","Mizu")#TODO この文字は後で認識すること
+        paper = Paper(img_paper,"Sho","Mizu")#紙インスタンス生成
     except:
         
         return False, "creating_paper"
@@ -35,6 +36,7 @@ def execute(img_ori):
 
 #デバッグ用のメソッド(エラーで止まる)
 def execute_debug(img_ori):
+    path.set_product_path()#rootpathをサーバように変更する
     img_paper = my_cv.cutting_paper(img_ori)
     print("done_cutting_paper")
     paper = Paper(img_paper,"Sho","Mizu")#TODO この文字は後で認識すること
