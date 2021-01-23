@@ -18,19 +18,19 @@ class CNN(Chain):#出力数を受け取ってcnnを作成する
         super(CNN, self).__init__(
             conv1 = L.Convolution2D(1, 32, 5), # filter 5
             conv2 = L.Convolution2D(32, 64, 5), # filter 5
-            l1 = L.Linear(256, 200),
-            l2 = L.Linear(200, 300),
-            l3 = L.Linear(300, output_num, initialW=np.zeros((output_num, 300), dtype=np.float32))
+            l1 = L.Linear(256, 500),
+            l2 = L.Linear(500,400),
+            l3 = L.Linear(400, output_num, initialW=np.zeros((output_num, 400), dtype=np.float32))
         )
     def forward(self, x):
         h = F.max_pooling_2d(F.relu(self.conv1(x)), 2)
         h = F.max_pooling_2d(F.relu(self.conv2(h)), 2)
         h = F.relu(self.l1(h))
         h = F.relu(self.l2(h))
-        h = self.l3(h)
+        h = F.sigmoid(self.l3(h))
         return h
 
-
+#止めが0 払いが１
 class Recognizer():
     @staticmethod
     #rectangleを受け取ってlabelとconfidenceを返す
@@ -42,8 +42,8 @@ class Recognizer():
         chainer.serializers.load_npz(path.ROOTPATH+"cnn.net",model)
         y = model.forward(x)
         label = np.argmax(y.data[0])
-        confidence = abs(y.data[0][0])*100
-
+        confidence = int(abs(y.data[0][label])*100)
+        #print("label"+str(label)+"confidence"+str(confidence))
         return label,confidence
     
     
