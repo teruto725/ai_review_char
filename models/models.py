@@ -395,8 +395,8 @@ class Score():
         return [item.get_message() for item in self.items_phase2  if item.get_label() == 3]   
     #フェーズ２のスコアを返す: int 30点満点
     def get_score_phase2(self):
-        if len(self.items_phase2) == 0:
-            return 30
+        if len(self.items_phase2)==0:
+            return 0
         return int(np.average([item.get_score() for item in self.items_phase2])*30/100)
     #フェーズ２の合否を返す: bool
     def get_result_phase2(self):
@@ -432,8 +432,13 @@ class Score():
 
     #総得点を返す 0~100
     def get_total_score_point(self):
-        score1 = 50 if self.get_result_phase1() else 0
-        return score1 + self.get_score_phase2()+self.get_score_phase3()+self.get_score_phase4()
+        score = 0
+        score += 50 if self.get_result_phase1() else 0
+        if self.get_result_phase1():
+            score += self.get_score_phase2()
+            if self.get_result_phase2():
+                score += self.get_score_phase3()
+        return score + self.get_score_phase4()
 
     # debug 用
     def print_debug(self):
@@ -800,7 +805,7 @@ class Sho(Char):
             if abs(approx_contour.right_bottom_point[0] - approx_contour.right_top_point[0])>40:
                 self.score.add_item_phase2("１かくめのせんはまっすぐひこう",[contour],60,False)
             else :
-                self.score.add_item_phase2("１かくめがまっすぐかけてるね",[contour],60,True)
+                self.score.add_item_phase2("１かくめがまっすぐかけてるね",[contour],100,True)
             #my_cv.display_point(contour.img_char,hidari_point)#debug
             #my_cv.display_point(contour.img_char,p2)#debug
             #my_cv.display_point(contour.img_char,p1)#debug
@@ -1169,7 +1174,7 @@ class Mizu(Char):
     #画３の判定 斜めかどうか
     def _kaku3_check(self,kaku3_kakidashi,kaku3_kakiowari1,kaku3_kakiowari2,contour):
         if abs(kaku3_kakidashi[0] - kaku3_kakiowari1[0]) > 30 and abs(kaku3_kakidashi[1] - kaku3_kakiowari1[1]) > 20 :
-            self.score.add_item_phase2("３かくめがきれいにかけてるね",[contour],60,True)
+            self.score.add_item_phase2("３かくめがきれいにかけてるね",[contour],100,True)
         else:
             self.score.add_item_phase2("３かくめのむきとながさをかくにんしよう",[contour],30,False)  
 
