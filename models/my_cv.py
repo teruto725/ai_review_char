@@ -77,12 +77,12 @@ def cutting_paper(img):
     #２値化
     img_th = cv2.adaptiveThreshold(img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, \
                                  cv2.THRESH_BINARY, 39, 2)#影を考慮した二値化
-    #display_gray(img_th)
+    display_gray(img_th)
     img_th = cv2.bitwise_not(img_th)
     #ノイズ除去
     img_noise = cv2.fastNlMeansDenoising(img_th,h=30)
-    #display_gray(img_noise)
-
+    display_gray(img_noise)
+    img_noise = cv2.bitwise_not(img_noise)
     #輪郭抽出
     contours, hierarchy = cv2.findContours(img_noise, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -97,7 +97,7 @@ def cutting_paper(img):
             #print(size)    
             epsilon = 0.05*cv2.arcLength(con,True)
             approx= cv2.approxPolyDP(con,epsilon,True)#紙の頂点座標
-            #display_approx2(img,approx)
+            display_approx2(img,approx)
             if len(approx) == 4:
                 if paper_tap is None:
                     paper_tap = (approx,size)

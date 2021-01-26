@@ -214,12 +214,9 @@ class Char():
         plt.show()
         
 
-
-
 #文字１つに対するスコアクラス。
 #items_phase1のメッセージは以下の３つ
 # かんじのかたちがへんだよ、Nかくめのかたちがへんだよ、
-
 
 
 class Score():
@@ -257,8 +254,8 @@ class Score():
         elif label == 3:
             shape = cv2.imread(path.ROOTPATH+"img_scores/check.png",cv2.IMREAD_UNCHANGED)
         shape = cv2.resize(shape, (255,255))
-        img[:, :] = img[:, :] * (1 - shape[:, :, 3:] / 255) + \
-                      shape[:, :, :3] * (shape[:, :, 3:] / 255)
+        #一項目で重なってない部分を取り出す
+        img[:, :] = img[:, :] * (1 - shape[:, :, 3:] / 255) +(img[:,:]*0.4+ shape[:, :, :3]*0.6) * (shape[:, :, 3:] / 255)
         return img
 
     #はねはらいとめ画像を生成する # TODO 実装する
@@ -280,12 +277,10 @@ class Score():
                 self._plot_phase3_item(img,i,temp_item.get_centroid(),Score.RED)
         return img
 
-
     def _plot_phase3_item(self,img,idx,centroid,color):
         img = cv2.circle(img,centroid, 13, color, 3)
         cv2.putText(img, str(idx), (centroid[0]-4, centroid[1]-20), cv2.FONT_HERSHEY_PLAIN, 2, color, 2, cv2.LINE_AA)
         return img
-
 
     #アイテム追加よう
     def add_item_phase1(self,message,is_ok):
@@ -365,10 +360,7 @@ class Score():
 
     #フェーズ1の画像を返す 255*255*3
     def get_img_phase1(self):
-        if self.get_result_phase1():
-            return self._overlay_saiten(self.img_overlay,1)
-        else:
-            return self._overlay_saiten(self.img_overlay,2)
+        return self.img_overlay
 
     #フェーズ１の合否を返す bool
     def get_result_phase1(self):
@@ -382,10 +374,7 @@ class Score():
         return [ item.get_message() for item in self.items_phase1 ]
     #フェーズ２の画像を返す 255*255*3
     def get_img_phase2(self):
-        if self.get_result_phase2():
-            return self._overlay_saiten(self.img_overlay,1)
-        else:
-            return self._overlay_saiten(self.img_overlay,2)
+        return self.img_overlay
     
     #フェーズ２のこうひょうかこめんとを返す
     def get_items_good_phase2(self):
@@ -428,6 +417,14 @@ class Score():
 
     #文字の画像のndarrayを返す(255*255)
     def get_img(self):
+        score = self.get_total_score_point()
+        if score > 90:
+            return self._overlay_saiten(self.img_char,0)#はなまるをプロット
+        elif score > 50:
+            return self._overlay_saiten(self.img_char,1)#まるをプロット
+        else:
+            return self._overlay_saiten(self.img_char,2)#さんかくをぷろっと
+
         return self.img_char
 
     #総得点を返す 0~100
@@ -443,26 +440,26 @@ class Score():
     # debug 用
     def print_debug(self):
         print("====="+self.kanji+"======")
-        my_cv.display_color(self.img_char)
+        my_cv.display_color(self.get_img())
         print("phase1")
-        #my_cv.display_color(self.get_img_phase1())
+        my_cv.display_color(self.get_img_phase1())
         for item in self.items_phase1:
             print(item.message)
         print("result:"+str(self.get_result_phase1()))
         print("phase2")
-        #my_cv.display_color(self.get_img_phase2())
+        my_cv.display_color(self.get_img_phase2())
         for item in self.items_phase2:
             print(item.message)
         print("result:"+str(self.get_result_phase2()))
         print("score:"+str(self.get_score_phase2()))
         print("phase3")
-        #my_cv.display_color(self.get_img_phase3())
+        my_cv.display_color(self.get_img_phase3())
         for item in self.items_phase3:
             print(str(item.to_list_phase3())+str(item.score))
         print("score:"+str(self.get_score_phase3()))
         print("phase4")
         print("score:"+str(self.get_score_phase4()))
-        #my_cv.display_color(self.get_img_phase1())
+        
         print("total_score:"+str(self.get_total_score_point()))
 
 
@@ -705,7 +702,7 @@ class Sho(Char):
             #self.height_check()#かくの高さ
             #崩れていなければpoints_numを使ってええ感じにfeaturepointを切り出す
         #余計な線がある
-        elif len(self.basic_contours) > 4:
+        elif len(self.basic_contours) >= 4:
             self.score.add_item_phase1("かんじのかたちがへんだよ",False)
         return self.score
         
@@ -731,7 +728,7 @@ class Sho(Char):
 
         #左下部分がうまく切り取れなかったら
         elif my_cv.distance(contour.max_x_point,contour.min_y_point) <20:#右上だけ切り取れた
-            self.score.add_item_phase2("２かくめのはらいのむきにきをつけよう",[contour],60,False)
+            self.score.add_item_phase2("２かくめはみぎうえからひだりしたにむかってななめにかこう",[contour],40,False)
         else:#右上さえ切り取れなかった
             self.score.add_item_phase1("２かくめのかたちがへんだよ",False)
         
@@ -908,7 +905,7 @@ class Mizu(Char):
             self._con2_check(self.basic_contours[1])
             
              
-        elif len(self.basic_contours) >3:
+        elif len(self.basic_contours) >=3:
             self.score.add_item_phase1("かんじのかたちがへんだよ",False)
 
         return self.score
