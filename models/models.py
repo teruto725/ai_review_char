@@ -405,7 +405,7 @@ class Score():
     def get_score_phase3(self):
         if len(self.get_items_phase3()) == 0:
             return 0
-        return int(np.average([item.get_score() for item in self.items_phase3])*20/100)
+        return int(sum([item.get_score() for item in self.items_phase3])/4*20/100)
 
     #お手本内の黒ビットの合計/黒ビットの合計*20
     def get_score_phase4(self):
@@ -730,13 +730,13 @@ class Sho(Char):
         elif my_cv.distance(contour.max_x_point,contour.min_y_point) <20:#右上だけ切り取れた
             self.score.add_item_phase2("２かくめはみぎうえからひだりしたにむかってななめにかこう",[contour],40,False)
         else:#右上さえ切り取れなかった
-            self.score.add_item_phase1("２かくめのかたちがへんだよ",False)
+            self.score.add_item_phase2("２かくめはみぎうえからひだりしたにむかってななめにかこう",[contour],0,False)
         
     def _kaku2_check(self,contour):
         #近似輪郭を出力する
         flg,approx = contour.get_approx(5,10000,30,0.01)
         if flg == False:
-            self.score.add_item_phase1("１かくめのかたちがへんだよ",False)
+            self.score.add_item_phase2("１かくめのかたちがへんだよ。おてほんとみくらべてみよう",[contour],0,False)
         #横幅が狭かったらハネれてない証拠
         elif abs(contour.min_x_point[0]-contour.max_x_point[0]) < 20:
             self.score.add_item_phase2("１かくめのさいごはしっかりはねよう",[contour],20,False)
@@ -767,7 +767,7 @@ class Sho(Char):
                 if d2new >20:
                     self._kaku2_hane_hantei(my_cv.mid_point(p2,hidari_point),p1,p2new,d1,d2new,contour,approx_contour)
                 else:
-                    self.score.add_item_phase1("１かくめのかたちをかくにんしよう",False)
+                    self.score.add_item_phase2("１かくめのかたちがへんだよ。おてほんとみくらべてみよう",[contour],0,False)
                 
             #p1が近いのでp1の次のやつがp1になる
             elif d1 <= 10:
@@ -776,7 +776,7 @@ class Sho(Char):
                 if d1new >20:#近くに次の点がない
                     self._kaku2_hane_hantei(my_cv.mid_point(p1,hidari_point),p1new,p2,d1new,d2,contour,approx_contour)
                 else:#近くに次の点があるのは違和感
-                    self.score.add_item_phase1("１かくめのかたちをかくにんしよう",False)
+                    self.score.add_item_phase2("１かくめのかたちがへんだよ。おてほんとみくらべてみよう",[contour],0,False)
                 
             else:#ここにはたどり着かんはず
                 print("kaku2 error")
@@ -845,9 +845,9 @@ class Sho(Char):
                     self.score.add_item_phase3_conf("３かくめのさきははしっかりとめよう",centroid,confidence,False)
 
         elif my_cv.distance(contour.min_x_point,contour.min_y_point) <20:#右上だけ切り取れた
-            self.score.add_item_phase1("３かくめのかたちがへんだよ",False)
+            self.score.add_item_phase2("３かくめはひだりうえからみぎしたにまっすぐひこう",[contour],60,False)
         else:
-            self.score.add_item_phase1("３かくめのかたちがへんだよ",False)
+            self.score.add_item_phase2("３かくめはひだりうえからみぎしたにまっすぐひこう",[contour],30,False)
 
     #ばらんすチェックする
     def _balance_check(self):
@@ -913,7 +913,7 @@ class Mizu(Char):
     def _con1_check(self,contour):
         flg, approx = contour.get_approx(4,10000,30,0.01)
         if flg == False:#approxがうまく切り取れなかった
-            self.score.add_item_phase1("２かくめのかたちがへんだよ",False)
+            self.score.add_item_phase2("２かくめはみぎうえからひだりしたにむかってかこう",[ self.basic_contours[1]],30,False)
         else:
             kakidashi_point = contour.left_top_point #かきだし
             kakiowari_point = contour.left_bottom_point #書き終わり
@@ -946,7 +946,7 @@ class Mizu(Char):
                 
                 #右上点と比較して右上から左下に向かって線が引かれている。
                 if migiue[0] < kakiowari_point[0] and migiue[1] > kakiowari_point[1]:
-                    self.score.add_item_phase1("２かくめのかたちがへんだよ",False)
+                    self.score.add_item_phase2("２かくめはみぎうえからひだりしたにむかってかこう",[ self.basic_contours[1]],30,False)
                     flg =False
 
                 #縦横比で極端に横が長い 縦に比べて横が1.3倍以上
