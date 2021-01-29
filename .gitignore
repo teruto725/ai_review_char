@@ -6,3 +6,8 @@ models/__pycache__/
 .DS_Store
 img_chars/
 img_recs/
+sample_images/
+img_exps/
+*.ipynb
+/db.csv
+/idx.txt
