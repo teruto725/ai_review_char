@@ -9,8 +9,10 @@ https://www.youtube.com/watch?v=Q9GCLHz3m38
 
 # 概要
 小学生の漢字を採点するpythonモジュールです。 
-漢字ドリルはちびむすドリル(https://happylilac.net/p-sy-kanzi.html)のものをダウンロードして使用してください。 
-アプリ側のプログラムはこちら(https://github.com/teruto725/kakikatateacher)を参照してください。 
+
+漢字ドリルはちびむすドリル( https://happylilac.net/p-sy-kanzi.html ) のものをダウンロードして使用してください。 
+
+アプリ側のプログラムはこちら( https://github.com/teruto725/kakikatateacher )を参照してください。 
 
 # 構成
 - img_chars/ : 学習・推論用画像のストック用ディレクトリ(文字全体画像)
