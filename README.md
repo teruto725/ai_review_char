@@ -14,6 +14,8 @@ https://www.youtube.com/watch?v=Q9GCLHz3m38
 
 アプリ側のプログラムはこちら( https://github.com/teruto725/kakikatateacher )を参照してください。 
 
+紹介資料: ( https://drive.google.com/file/d/1EORzLp9NcgLM_N3-LBghtsSo86Q87Fxg/view?usp=sharing )
+
 # 構成
 - img_chars/ : 学習・推論用画像のストック用ディレクトリ(文字全体画像)
 - img_exps/ : お手本画像をストックするためのディレクトリ
